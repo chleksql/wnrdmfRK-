@@ -1,3 +1,5 @@
+import streamlit as st
+
 questions = [
     {"q": "🌙 몇 시에 자나요?", "opts": ["9시 이전", "10~11시", "12시 이후", "새벽까지"]},
     {"q": "🛌 하루 수면 시간?", "opts": ["8시간 이상", "6~8시간", "4~6시간", "4시간 이하"]},
@@ -31,7 +33,7 @@ def predict(answers):
     if answers[6] == "과다복용":
         risk["약물"] += 4
     if answers[8] in ["자주 즐김", "매우 자주 즐김"]:
-        risk["약물"] += 1  # 도파민 자극 과하면 약물 위험 상승
+        risk["약물"] += 1
 
     key = max(risk, key=risk.get)
     msgs = {
@@ -43,29 +45,43 @@ def predict(answers):
     }
     return msgs[key]
 
-def run():
-    print("💀 미래 죽음 예측 설문에 오신 걸 환영합니다! 💀")
-    name = input("이름을 알려주세요: ").strip()
-    print(f"\n{name}님, 시작할게요! 아래 보기 중에서 답을 그대로 입력하세요.\n")
+def main():
+    st.title("💀 미래 죽음 예측 설문 💀")
+    
+    if "step" not in st.session_state:
+        st.session_state.step = 0
+        st.session_state.answers = []
+        st.session_state.name = ""
 
-    ans = []
-    for i, q in enumerate(questions, 1):
-        print(f"{i}. {q['q']}")
-        print("보기:", ", ".join(q["opts"]))
-        while True:
-            reply = input("답 입력: ").strip()
-            if reply in q["opts"]:
-                ans.append(reply)
-                print()
-                break
+    if st.session_state.step == 0:
+        name = st.text_input("이름을 알려주세요:")
+        if st.button("시작"):
+            if name.strip() == "":
+                st.warning("이름을 입력해주세요!")
             else:
-                print("😅 보기 중에서 정확히 입력해주세요!")
+                st.session_state.name = name.strip()
+                st.session_state.step = 1
 
-    print("🩺 분석 중... 잠시만요!\n")
-    print(f"🩸 {name}님의 미래 사망 원인 예측:")
-    print(predict(ans))
-    print("\n🙏 삼가 고인의 명복을 빕니다 🙏\n")
-    print("💀 참여해 주셔서 감사합니다! 💀")
+    elif 1 <= st.session_state.step <= len(questions):
+        idx = st.session_state.step - 1
+        q = questions[idx]
+        st.write(f"**{st.session_state.step}. {q['q']}**")
+        choice = st.radio("선택하세요:", q["opts"], key=idx)
+
+        if st.button("다음"):
+            st.session_state.answers.append(choice)
+            st.session_state.step += 1
+
+    else:
+        st.header(f"{st.session_state.name}님의 미래 사망 원인 예측 결과")
+        result = predict(st.session_state.answers)
+        st.markdown(f"### {result}")
+        st.markdown("🙏 **삼가 고인의 명복을 빕니다** 🙏")
+        
+        if st.button("다시하기"):
+            st.session_state.step = 0
+            st.session_state.answers = []
+            st.session_state.name = ""
 
 if __name__ == "__main__":
-    run()
+    main()
